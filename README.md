@@ -48,10 +48,6 @@ aws configure set region eu-west-2
 cdk bootstrap
 ```
 
-You should see:
-
-✅ Environment aws://1234567890/region bootstrapped.
-
 5. Deploy the foundation:
 
 ```bash
@@ -70,12 +66,6 @@ cdk deploy database-stack
 cdk deploy app-stack
 ```
 
-Eventually you should see:
-
-✅ app-stack
-
-✨ Deployment time: Xs
-
 You can't use the app _just_ yet though. Live Beats uses GitHub for authentication. When you deployed the app stack, it created a placeholder for a GitHub OAuth client ID/secret and showed you their AWS ARN (two long strings starting `arn:ws:secretsmanager`). You now need to create that.
 
 ## Create a GitHub OAuth app.
@@ -85,13 +75,13 @@ You can't use the app _just_ yet though. Live Beats uses GitHub for authenticati
 Now run these commands to tell the app what they are:
 
 ```bash
-aws secretsmanager update-secret --secret-id "github-client-id-arn-here" --secret-string "github-client-id-value-here"
-aws secretsmanager update-secret --secret-id "github-client-secret-arn-here" --secret-string "github-client-secret-value-here"
+aws secretsmanager update-secret --secret-id "arn:aws:secretsmanager...the-github-client-id-one" --secret-string "your-github-client-id"
+aws secretsmanager update-secret --secret-id "arn:aws:secretsmanager...the-github-client-secret-one" --secret-string "your-github-client-secret"
 ```
 
 ## Start the app
 
-In `lib/appStack.ts`, look for `desiredCount: 0` and change that to `desiredCount: 2` to run two containers (we are not using auto-scaling).
+In `lib/appStack.ts`, look for `desiredCount: 0` and change that to `desiredCount: 2` to run _two_ containers (we are not using auto-scaling).
 
 Deploy the app stack again. That will start the containers and fetch the updated secrets:
 
@@ -110,11 +100,11 @@ Paste the load balancer's hostname in a new browser tab. You should see the Live
 
 - You will be prompted to approve some deploys (for example if they involve changing IAM policies). You can avoid being asked by adding `--require-approval never`.
 - This project uses `v2.81.0"` for `@aws-cdk/*`.
-- If you would like to generate your own `SECRET_KEY_BASE` by instead running `mix phx.gen.secret` simply update the secret we made using the same CLI call, as above. Just use the `arn` of _that_ secret which you can get from the stack, CLI or console.
+- If you would like to generate your own `SECRET_KEY_BASE` from `mix phx.gen.secret` simply update the secret we made using the same CLI call, as above. Just use the `arn` of _that_ secret which you can get from the stack, CLI or console.
 
 ## Clean up
 
-Resources incur a cost. If you are sure, you can delete them all:
+AWS Resources incur a cost. If you are sure, you can delete the stacks:
 
 ```bash
 cdk destroy app-stack
@@ -124,7 +114,7 @@ cdk destroy foundation-stack
 
 ## HTTPS?
 
-You will have noticed that the default load balancer only listens on HTTP/80. You _can_ of course configure it use HTTPS/443 _but_ if you do, you need to _also_ specify an SSL certificate for it to use. _That_ means using a domain that you can verify ownership of (by email or DNS). ACM can then issue a certificate and it would become available for the load balancer to use.
+You will have noticed that the default load balancer only listens on HTTP/80. You _can_ use HTTPS/443 but to do that you need to _also_ specify an SSL certificate for it to use. _That_ means using a domain that you can verify ownership of (by email or DNS). ACM can then issue a certificate and it would become available for the load balancer to use.
 
 You would then need to modify the app stack to use `443` in place of `80`. For example for the load balancer's listener and its security group.
 
